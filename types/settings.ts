@@ -1,4 +1,4 @@
-export type AIProvider = 'openai' | 'anthropic' | 'google' | 'mistral' | 'local';
+export type AIProvider = 'openai' | 'anthropic' | 'google' | 'mistral' | 'local' | 'custom';
 
 export interface ProviderConfig {
   id: AIProvider;
@@ -82,6 +82,15 @@ export const AI_PROVIDERS: ProviderConfig[] = [
   }
 ];
 
+export interface CustomProvider {
+  id: string;
+  name: string;
+  endpoint: string;
+  apiKey: string;
+  model: string;
+  headers?: Record<string, string>;
+}
+
 export interface UserSettings {
   provider: AIProvider;
   apiKey: string;
@@ -90,6 +99,9 @@ export interface UserSettings {
   maxTokens: number;
   temperature: number;
   saveLocally: boolean;
+  // Custom providers storage
+  customProviders?: CustomProvider[];
+  activeCustomProviderId?: string;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -98,7 +110,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   model: 'gpt-4o-mini',
   maxTokens: 4000,
   temperature: 0.3,
-  saveLocally: false
+  saveLocally: false,
+  customProviders: [],
 };
 
 export interface ProviderStatus {
@@ -107,4 +120,5 @@ export interface ProviderStatus {
   valid: boolean;
   lastChecked: string;
   error?: string;
+  customProviderId?: string;
 }

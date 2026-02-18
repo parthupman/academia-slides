@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ProviderConfig, UserSettings } from '@/types/settings';
-import { Check, AlertCircle, ExternalLink, Key, Server, Brain } from 'lucide-react';
+import { Check, AlertCircle, ExternalLink, Key, Server, Brain, ServerCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { validateApiKey, getAvailableModels } from '@/lib/settings';
 
@@ -57,6 +57,8 @@ export function ProviderCard({
     switch (config.icon) {
       case 'Local':
         return <Server className="w-5 h-5" />;
+      case 'Custom':
+        return <ServerCog className="w-5 h-5" />;
       case 'Claude':
       case 'Gemini':
       case 'Mistral':
@@ -106,6 +108,9 @@ export function ProviderCard({
               <h3 className="font-semibold text-gray-900">{config.name}</h3>
               {config.id === 'local' && (
                 <Badge variant="outline" className="text-xs">Free</Badge>
+              )}
+              {config.id === 'custom' && (
+                <Badge variant="outline" className="text-xs bg-violet-50 text-violet-700 border-violet-200">OpenAI-Compatible</Badge>
               )}
             </div>
             <p className="text-sm text-gray-500 mt-1">{config.description}</p>
@@ -195,25 +200,53 @@ export function ProviderCard({
               </div>
             )}
 
-            {/* Model Selection */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Model</Label>
-              <Select
-                value={settings.model}
-                onValueChange={(value) => onUpdateSettings({ model: value })}
-              >
-                <SelectTrigger onClick={(e) => e.stopPropagation()}>
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Custom Provider Info */}
+            {config.id === 'custom' && (
+              <div className="space-y-3">
+                <div className="p-3 bg-violet-50 border border-violet-200 rounded-lg">
+                  <p className="text-sm text-violet-800">
+                    <strong>Custom providers are configured in the &quot;Custom&quot; tab.</strong>
+                  </p>
+                  <p className="text-xs text-violet-600 mt-1">
+                    Add NVIDIA NIM, Azure OpenAI, Groq, or any OpenAI-compatible endpoint.
+                  </p>
+                </div>
+                {settings.activeCustomProviderId ? (
+                  <div className="text-sm">
+                    <span className="text-gray-500">Active:</span>{' '}
+                    <span className="font-medium">
+                      {settings.customProviders?.find(p => p.id === settings.activeCustomProviderId)?.name || 'Unknown'}
+                    </span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-amber-600">
+                    No custom provider configured. Go to the Custom tab to add one.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Model Selection - hide for custom as it's set per-provider */}
+            {config.id !== 'custom' && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Model</Label>
+                <Select
+                  value={settings.model}
+                  onValueChange={(value) => onUpdateSettings({ model: value })}
+                >
+                  <SelectTrigger onClick={(e) => e.stopPropagation()}>
+                    <SelectValue placeholder="Select model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {models.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Test Button */}
             <div className="flex items-center space-x-3">

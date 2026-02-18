@@ -21,6 +21,7 @@ export interface AIService {
   config: ServiceConfig;
   requiresApiKey?: boolean;
   priority?: number; // Lower = preferred
+  isCustom?: boolean; // Flag for user-added custom providers
 }
 
 export interface ServiceConfig {
@@ -32,6 +33,9 @@ export interface ServiceConfig {
   enabled: boolean;
   temperature?: number;
   maxTokens?: number;
+  // Custom provider specific
+  headers?: Record<string, string>;
+  customProviderId?: string;
 }
 
 // Service Registry - defines which service does what

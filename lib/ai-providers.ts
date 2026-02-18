@@ -8,9 +8,24 @@ export async function analyzeWithOpenAI(
 ): Promise<PaperAnalysis> {
   const { default: OpenAI } = await import('openai');
   
+  // Determine endpoint and model for custom providers
+  let endpoint = settings.customEndpoint;
+  let model = settings.model;
+  
+  // If using a custom provider, get its config
+  if (settings.provider === 'custom' && settings.activeCustomProviderId) {
+    const customProvider = settings.customProviders?.find(
+      p => p.id === settings.activeCustomProviderId
+    );
+    if (customProvider) {
+      endpoint = customProvider.endpoint;
+      model = customProvider.model;
+    }
+  }
+  
   const openai = new OpenAI({
     apiKey: settings.apiKey,
-    baseURL: settings.customEndpoint || undefined,
+    baseURL: endpoint || undefined,
   });
 
   const truncatedText = text.slice(0, 15000);
@@ -43,7 +58,7 @@ Paper text:
 ${truncatedText}`;
 
   const response = await openai.chat.completions.create({
-    model: settings.model || 'gpt-4o-mini',
+    model: model || 'gpt-4o-mini',
     messages: [
       { role: 'system', content: 'You are an expert academic paper analyzer. Always return valid JSON.' },
       { role: 'user', content: prompt }
@@ -236,6 +251,7 @@ ${focusAreas.length > 0 ? `Focus Areas: ${focusAreas.join(', ')}` : ''}`;
 
   switch (settings.provider) {
     case 'openai':
+    case 'custom':
       content = await callOpenAI(prompt, settings);
       break;
     case 'anthropic':
@@ -261,10 +277,31 @@ ${focusAreas.length > 0 ? `Focus Areas: ${focusAreas.join(', ')}` : ''}`;
 // Helper functions for each provider
 async function callOpenAI(prompt: string, settings: UserSettings): Promise<string> {
   const { default: OpenAI } = await import('openai');
-  const openai = new OpenAI({ apiKey: settings.apiKey });
+  
+  // Determine endpoint and model for custom providers
+  let endpoint = settings.customEndpoint;
+  let model = settings.model;
+  let apiKey = settings.apiKey;
+  
+  // If using a custom provider, get its config
+  if (settings.provider === 'custom' && settings.activeCustomProviderId) {
+    const customProvider = settings.customProviders?.find(
+      p => p.id === settings.activeCustomProviderId
+    );
+    if (customProvider) {
+      endpoint = customProvider.endpoint;
+      model = customProvider.model;
+      apiKey = customProvider.apiKey;
+    }
+  }
+  
+  const openai = new OpenAI({ 
+    apiKey: apiKey,
+    baseURL: endpoint || undefined,
+  });
   
   const response = await openai.chat.completions.create({
-    model: settings.model || 'gpt-4o-mini',
+    model: model || 'gpt-4o-mini',
     messages: [
       { role: 'system', content: 'You are an expert academic presentation designer. Always return valid JSON.' },
       { role: 'user', content: prompt }
@@ -365,6 +402,9 @@ export async function checkProviderStatus(settings: UserSettings): Promise<Provi
       case 'openai':
         valid = await checkOpenAI(settings);
         break;
+      case 'custom':
+        valid = await checkCustomProvider(settings);
+        break;
       case 'anthropic':
         valid = await checkAnthropic(settings);
         break;
@@ -381,18 +421,50 @@ export async function checkProviderStatus(settings: UserSettings): Promise<Provi
     
     return {
       provider: settings.provider,
-      configured: !!settings.apiKey || settings.provider === 'local',
+      configured: !!settings.apiKey || settings.provider === 'local' || settings.provider === 'custom',
       valid,
-      lastChecked: new Date().toISOString()
+      lastChecked: new Date().toISOString(),
+      customProviderId: settings.activeCustomProviderId
     };
   } catch (error) {
     return {
       provider: settings.provider,
-      configured: !!settings.apiKey || settings.provider === 'local',
+      configured: !!settings.apiKey || settings.provider === 'local' || settings.provider === 'custom',
       valid: false,
       lastChecked: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      customProviderId: settings.activeCustomProviderId
     };
+  }
+}
+
+async function checkCustomProvider(settings: UserSettings): Promise<boolean> {
+  const customProvider = settings.customProviders?.find(
+    p => p.id === settings.activeCustomProviderId
+  );
+  
+  if (!customProvider) return false;
+  
+  try {
+    const { default: OpenAI } = await import('openai');
+    const openai = new OpenAI({
+      apiKey: customProvider.apiKey,
+      baseURL: customProvider.endpoint,
+    });
+    
+    // Try to list models - lightweight check
+    const models = await openai.models.list();
+    return models.data.length > 0;
+  } catch {
+    // Fallback: try a simple completion
+    try {
+      const response = await fetch(`${customProvider.endpoint}/models`, {
+        headers: { 'Authorization': `Bearer ${customProvider.apiKey}` }
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
   }
 }
 

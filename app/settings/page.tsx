@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProviderCard } from '@/components/settings/provider-card';
 import { ServicesConfig } from '@/components/services-config';
 import { ServiceIntegrationDemo } from '@/components/visual-preview';
+import { CustomProviderManager } from '@/components/custom-provider-manager';
 import { AI_PROVIDERS, UserSettings, DEFAULT_SETTINGS } from '@/types/settings';
 import { getSettings, saveSettings, clearSettings } from '@/lib/settings';
 import { checkProviderStatus } from '@/lib/ai-providers';
@@ -29,7 +30,8 @@ import {
   Maximize2,
   Layers,
   Zap,
-  Workflow
+  Workflow,
+  Server
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -153,9 +155,19 @@ export default function SettingsPage() {
               <div>
                 <h2 className="font-medium text-gray-900">
                   Active Provider: {activeProvider.name}
+                  {settings.provider === 'custom' && settings.activeCustomProviderId && (
+                    <span className="ml-2 text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">
+                      Custom
+                    </span>
+                  )}
                 </h2>
                 <p className="text-sm text-gray-600">
                   Model: {settings.model || 'Not selected'}
+                  {settings.provider === 'custom' && settings.customEndpoint && (
+                    <span className="ml-2 text-xs text-gray-500">
+                      ({settings.customEndpoint})
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -163,10 +175,14 @@ export default function SettingsPage() {
         )}
 
         <Tabs defaultValue="general" className="space-y-8">
-          <TabsList className="grid grid-cols-3 w-full max-w-md">
+          <TabsList className="grid grid-cols-4 w-full max-w-lg">
             <TabsTrigger value="general">
               <Settings className="w-4 h-4 mr-2" />
               General
+            </TabsTrigger>
+            <TabsTrigger value="custom">
+              <Server className="w-4 h-4 mr-2" />
+              Custom
             </TabsTrigger>
             <TabsTrigger value="services">
               <Layers className="w-4 h-4 mr-2" />
@@ -288,6 +304,13 @@ export default function SettingsPage() {
                 </div>
               </Card>
             </section>
+          </TabsContent>
+
+          <TabsContent value="custom" className="space-y-8">
+            <CustomProviderManager 
+              settings={settings} 
+              onUpdate={updateSettings} 
+            />
           </TabsContent>
 
           <TabsContent value="services" className="space-y-8">
