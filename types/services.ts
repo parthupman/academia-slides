@@ -19,7 +19,8 @@ export interface AIService {
   description: string;
   capabilities: string[];
   config: ServiceConfig;
-  priority: number; // Lower = preferred
+  requiresApiKey?: boolean;
+  priority?: number; // Lower = preferred
 }
 
 export interface ServiceConfig {
@@ -29,6 +30,8 @@ export interface ServiceConfig {
   maxRequestsPerMinute?: number;
   timeout?: number;
   enabled: boolean;
+  temperature?: number;
+  maxTokens?: number;
 }
 
 // Service Registry - defines which service does what
